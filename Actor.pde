@@ -81,6 +81,11 @@ class Actor {
     }
   }
   
+  void setAngle(float angle) {
+    body.setTransform(body.getWorldCenter(),angle);
+    body.setAngularVelocity(0);
+  }
+  
   void update() {
     //next two lines set body to face direction of travel (although this is not what the final version needs).
     //float newAngle = (float) Math.atan2((double) body.getLinearVelocity().y, (double) body.getLinearVelocity().x); 

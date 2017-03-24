@@ -13,7 +13,7 @@ class KeyboardHandler {
   
   void processKeyInput() {
     if (keys[0]) {
-      actorControl.shoot(actorControl.player);
+      //actorControl.shoot(actorControl.player);
     }
     if (keys[1]) {
       actorControl.moveForward(actorControl.player);
@@ -105,6 +105,35 @@ class KeyboardHandler {
     }
     if (key == 'm') {
       keys[6] = false;
+    }
+  }
+  
+  int getWInt() {
+    if (keys[1]) {
+      return 1;
+    } else {
+      return 0;
+    }
+  }
+  int getAInt() {
+    if (keys[3]) {
+      return 1;
+    } else {
+      return 0;
+    }
+  }
+  int getSInt() {
+    if (keys[2]) {
+      return 1;
+    } else {
+      return 0;
+    }
+  }
+  int getDInt() {
+    if (keys[4]) {
+      return 1;
+    } else {
+      return 0;
     }
   }
   

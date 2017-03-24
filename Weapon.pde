@@ -3,7 +3,7 @@ import org.jbox2d.dynamics.World;
 class Weapon {
   //This class will hold data about the type of weapon the player is holding, which define's their attack options.
   int damage = 5;
-  float pushback = 25;
+  float pushback = 90;
   float range = 1500;
   float maxSpread = 4 * (2 * PI / 360); //spread converted to radians.
   int fireDelay = 4;
@@ -62,7 +62,7 @@ class Weapon {
       //define a line for the raycast.
       angle = angle - (PI/2); // correct for "front" of player
       angle = angle - maxSpread + ((float)Math.random() * maxSpread * 2); //bulletSpread
-      Vec2 origin = firer.body.getPosition();
+      Vec2 origin = firer.body.getWorldCenter();
       Vec2 endPoint = new Vec2(origin.x + (box2d.scalarPixelsToWorld(range) * (float)Math.cos(angle)), origin.y + (box2d.scalarPixelsToWorld(range) * (float)Math.sin(angle)));
       //send out a raycast, which will be caught by the RayDetect object
       box2d.world.raycast(rayDetect, origin,endPoint);
@@ -81,8 +81,8 @@ class Weapon {
       //draw line to the point hit
       strokeWeight(2);
       stroke(250,30,30);
-      if (rayDetect.pointHit != null) {
-        Vec2 bulletEnd = box2d.coordWorldToPixels(rayDetect.pointHit);
+      if (rayDetect.closestPointHit != null) {
+        Vec2 bulletEnd = box2d.coordWorldToPixels(rayDetect.closestPointHit);
         Vec2 drawOrigin = box2d.coordWorldToPixels(origin);
         line(drawOrigin.x,drawOrigin.y,bulletEnd.x,bulletEnd.y);
         strokeWeight(15);
@@ -94,22 +94,14 @@ class Weapon {
         line(drawOrigin.x,drawOrigin.y,endPointPixels.x,endPointPixels.y);
       }
       
-      
-      if (rayDetect.targetFixtureHit != null) {
-        //Find out what type of Fixture was hit
-        Fixture fixHit = rayDetect.targetFixtureHit;
-        Object testObject = fixHit.getUserData();
-        Actor actorHit = null;
-        if (testObject != null) {
-          if (testObject instanceof Actor) {
-            actorHit = (Actor)testObject;
-          }
-        }
-        if (actorHit != null && actorHit.myTeam == Team.ZOMBIE) {
-          Vec2 shotDir = endPoint.add(origin.mul(-1));
-          shotDir = shotDir.mul(pushback);
-          actorHit.wasHit(shotDir,damage);
-        }
+      //get object reference and apply a force and add damage to it;
+      Object obj = rayDetect.closestObjectHit;
+      if (obj != null && obj instanceof Actor) {
+        Actor aHit = (Actor)obj;
+        Vec2 vecToTarget = aHit.body.getPosition().add(origin.mul(-1));
+        //vecToTarget.normalize();
+        Vec2 forceToApply = vecToTarget.mul(pushback);
+        aHit.wasHit(forceToApply,damage);
       }
       rayDetect.cleanup();
     }

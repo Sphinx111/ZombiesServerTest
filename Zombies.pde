@@ -13,13 +13,16 @@ FogOfWar fogOfWar;
 UILayer uiLayer;
 MouseHandler mouseHandler;
 SoundManager soundManager;
+ServerModule server;
+ClientModule client;
 Camera mainCamera;
 Boolean isPaused = true;
 Boolean creatorMode = false;
+Boolean isServer = true;
 
 Vec2 playerStartPos;
-int numOfActors = 15;
-int totalHumanPlayers = 3;
+int numOfActors = 3;
+int totalHumanPlayers = 2;
 
 float newMouseX;
 float newMouseY;
@@ -39,6 +42,13 @@ void setup() {
   uiLayer = new UILayer();
   soundManager = new SoundManager(this);
   mapHandler.loadMap("testMap");
+  if (isServer) {
+    server = new ServerModule();
+    server.start();
+  } else if (!isServer) {
+    client = new ClientModule();
+    client.start();
+  }
 }
 
 void draw() {

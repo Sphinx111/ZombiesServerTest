@@ -1,8 +1,10 @@
 class ActorController {
   
+  int MAX_PLAYER_COUNT = 200;
   ArrayList<Actor> actorsInScene = new ArrayList<Actor>();
   ArrayList<Actor> actorsToRemove = new ArrayList<Actor>(0);
   Actor player = null;
+  Actor[] players = new Actor[MAX_PLAYER_COUNT];
   
   public ActorController(int n) {
     for (int i = 0; i < n; i++) {
@@ -25,6 +27,12 @@ class ActorController {
     }
   }
   
+  public void addNewHumanPlayer(int id) {
+    Actor newPlayer = new Actor(getJoinPos(),true, Team.HUMAN, Type.SOLDIER);
+    players[id] = newPlayer;
+    actorsInScene.add(newPlayer);
+  }
+  
   void createActor(Vec2 pos, boolean isPlayer, Team team, Type type) {
     actorsInScene.add(new Actor(pos,isPlayer,team,type));
   }
@@ -33,6 +41,10 @@ class ActorController {
     if (!actorsToRemove.contains(deadActor)) {
       actorsToRemove.add(deadActor);
     }
+  }
+  
+  Vec2 getJoinPos() {
+    return new Vec2((playerStartPos.x - 50) + ((float)Math.random() * 100), (playerStartPos.y - 50) + ((float)Math.random() * 100));
   }
   
   void cleanup() {
@@ -64,21 +76,38 @@ class ActorController {
     }
   }
   
+  void setAngle(int playerID, float angle) {
+    players[playerID].setAngle(angle);
+  }
   void shoot(Actor a) {
     a.shoot();
   }
-  
+  void shoot(int playerID) {
+    players[playerID].shoot();
+  }
   void moveForward(Actor a) {
     a.applyForce(new Vec2(0,1).mul(a.accel));
+  }
+  void moveForward(int playerID) {
+      players[playerID].applyForce(new Vec2(0,1).mul(players[playerID].accel));
   }
   void moveBackward(Actor a) {
     a.applyForce(new Vec2(0,-1).mul(a.accel));
   }
+  void moveBackward(int playerID) {
+      players[playerID].applyForce(new Vec2(0,-1).mul(players[playerID].accel));
+  }
   void moveLeft(Actor a) {
     a.applyForce(new Vec2(-1,0).mul(a.accel));
   }
+  void moveLeft(int playerID) {
+    players[playerID].applyForce(new Vec2(-1,0).mul(players[playerID].accel));
+  }
   void moveRight(Actor a) {
     a.applyForce(new Vec2(1,0).mul(a.accel));
+  }
+  void moveRight(int playerID) {
+    players[playerID].applyForce(new Vec2(1,0).mul(players[playerID].accel));
   }
   
 }
