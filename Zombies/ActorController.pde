@@ -12,29 +12,44 @@ class ActorController {
       if (i < totalHumanPlayers) {
         newPos = new Vec2((playerStartPos.x - 50) + ((float)Math.random() * 100), (playerStartPos.y - 50) + ((float)Math.random() * 100));
         if (i == 0) {
-          Actor newPlayer = new Actor(newPos, true, Team.HUMAN, Type.SOLDIER);
+          Actor newPlayer = new Actor(newPos, true, Team.HUMAN, Type.SOLDIER, -1);
+          newPlayer.actorID = uniqueIDCounter;
+          uniqueIDCounter += 1;
           actorsInScene.add(newPlayer);
           player = newPlayer;
         } else {
-          Actor newPlayer = new Actor(newPos, false, Team.HUMAN, Type.SOLDIER);
+          Actor newPlayer = new Actor(newPos, false, Team.HUMAN, Type.SOLDIER, -2);
+          newPlayer.actorID = uniqueIDCounter;
+          uniqueIDCounter += 1;
           actorsInScene.add(newPlayer);
         }
       } else if (i % 10 == 0) {
-        actorsInScene.add(new Actor(newPos, false, Team.ZOMBIE, Type.BIG_ZOMBIE));
+        Actor newBot = new Actor(newPos, false, Team.ZOMBIE, Type.BIG_ZOMBIE,-2);
+        actorsInScene.add(newBot);
+        newBot.actorID = uniqueIDCounter;
+        uniqueIDCounter += 1;
       } else {
-        actorsInScene.add(new Actor(newPos, false, Team.ZOMBIE, Type.BASIC_ZOMBIE));
+        Actor newBot = new Actor(newPos, false, Team.ZOMBIE, Type.BASIC_ZOMBIE,-2);
+        actorsInScene.add(newBot);
+        newBot.actorID = uniqueIDCounter;
+        uniqueIDCounter += 1;
       }
     }
   }
   
   public void addNewHumanPlayer(int id) {
-    Actor newPlayer = new Actor(getJoinPos(),true, Team.HUMAN, Type.SOLDIER);
+    Actor newPlayer = new Actor(getJoinPos(),true, Team.HUMAN, Type.SOLDIER, id);
     players[id] = newPlayer;
+    newPlayer.actorID = uniqueIDCounter;
+    uniqueIDCounter += 1;
     actorsInScene.add(newPlayer);
   }
   
-  void createActor(Vec2 pos, boolean isPlayer, Team team, Type type) {
-    actorsInScene.add(new Actor(pos,isPlayer,team,type));
+  void createActor(Vec2 pos, boolean isPlayer, Team team, Type type, int id) {
+    Actor newActor = new Actor(pos,isPlayer,team,type,id);
+    actorsInScene.add(newActor);
+    newActor.actorID = uniqueIDCounter;
+    uniqueIDCounter += 1;
   }
   
   void removeActor(Actor deadActor) {
@@ -86,28 +101,28 @@ class ActorController {
     players[playerID].shoot();
   }
   void moveForward(Actor a) {
-    a.applyForce(new Vec2(0,1).mul(a.accel));
+    a.move(new Vec2(0,1));
   }
   void moveForward(int playerID) {
-      players[playerID].applyForce(new Vec2(0,1).mul(players[playerID].accel));
+      players[playerID].move(new Vec2(0,1));
   }
   void moveBackward(Actor a) {
-    a.applyForce(new Vec2(0,-1).mul(a.accel));
+    a.move(new Vec2(0,-1));
   }
   void moveBackward(int playerID) {
-      players[playerID].applyForce(new Vec2(0,-1).mul(players[playerID].accel));
+      players[playerID].move(new Vec2(0,-1));
   }
   void moveLeft(Actor a) {
-    a.applyForce(new Vec2(-1,0).mul(a.accel));
+    a.move(new Vec2(-1,0));
   }
   void moveLeft(int playerID) {
-    players[playerID].applyForce(new Vec2(-1,0).mul(players[playerID].accel));
+    players[playerID].move(new Vec2(-1,0));
   }
   void moveRight(Actor a) {
-    a.applyForce(new Vec2(1,0).mul(a.accel));
+    a.move(new Vec2(1,0));
   }
   void moveRight(int playerID) {
-    players[playerID].applyForce(new Vec2(1,0).mul(players[playerID].accel));
+    players[playerID].move(new Vec2(1,0));
   }
   
 }

@@ -56,6 +56,13 @@ class MouseHandler {
               lastCreatedMapObject.linkToDoor(doorUnderMouse);
               doorUnderMouse.myColor = doorUnderMouse.LINKED_DOOR_COLOR;
               readyForDoorLink = false;
+            } else {
+            MapObject sensorUnderMouse = getMapObjectUnderMouse(BlockType.SENSOR,BlockType.SENSOR);//call objundermousefunc
+            if (sensorUnderMouse != null) {
+              lastCreatedMapObject.linkedDoorID = sensorUnderMouse.myID;
+              lastCreatedMapObject.linkToDoor(sensorUnderMouse);
+              readyForDoorLink = false;
+            }
             }
           } else if (currentType == BlockType.DOOR) {
             if (doorToEdit == null) {
@@ -186,13 +193,30 @@ class MouseHandler {
   }
   
   void update() {
-    newMouseX = mouseX - mainCamera.xOff;
-    newMouseY = mouseY - mainCamera.yOff;
+    newMouseX = mouseX - mainCamera.getPlayerPixPos().x;
+    newMouseY = mouseY - mainCamera.getPlayerPixPos().y;
     
-    actorControl.player.turnTowards(new Vec2(newMouseX,newMouseY));
+    Vec2 mouseScreenPos = new Vec2(mouseX,mouseY);
+    Vec2 playerScreenPos = box2d.getBodyPixelCoord(actorControl.player.body);
+    playerScreenPos = new Vec2(playerScreenPos.x + mainCamera.xOff, playerScreenPos.y + mainCamera.yOff);
+    Vec2 vectorToMousePoint = (mouseScreenPos.add(playerScreenPos.mul(-1)));
+    float angleToMousePoint = (PI/2) - (float)Math.atan2(vectorToMousePoint.y, vectorToMousePoint.x);
+    
+    actorControl.player.setAngle(angleToMousePoint);
     if (holdClick && !isPaused) {
       actorControl.player.shoot();
     }
+    
+    
+    /*
+    void turnTowards(Vec2 pixPos) {
+      Vec2 worldPos = box2d.coordPixelsToWorld(pixPos);
+      Vec2 vecToMouse = worldPos.add(body.getPosition().mul(-1));
+      float newAngle = PI/2 + (float)Math.atan2(vecToMouse.y,vecToMouse.x);
+      body.setTransform(body.getWorldCenter(), newAngle);
+      body.setAngularVelocity(0);
+    }
+    */
     
     fill(255);
     text(mouseX + "," + mouseY,0,0);

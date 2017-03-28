@@ -2,11 +2,14 @@ import java.io.PrintWriter;
 import java.io.FileReader;
 import java.io.BufferedReader;
 
+//Gives entities a Unique ID number for serialization and save/load processes.
+public int uniqueIDCounter = 0;
+
 class MapHandler {
  
-  int uniqueIDCounter = 0;
   ArrayList<MapObject> allObjects = new ArrayList<MapObject>();
   ArrayList<MapObject> objectsToRemove = new ArrayList<MapObject>();
+  ArrayList<Object> objectsUpdated = new ArrayList<Object>(); //any objects moved this turn are listed for subsequent serialization.
   PrintWriter printToSave;
   BufferedReader readToLoad;
   String name = "testMap";
@@ -33,6 +36,14 @@ class MapHandler {
     allObjects.add(newItem);
     uniqueIDCounter +=1;
     return newItem;
+  }
+  
+  void objectUpdated(MapObject iChanged) {
+    objectsUpdated.add((Object)iChanged);
+  }
+  
+  void objectUpdated (Actor iChanged) {
+    objectsUpdated.add((Object)iChanged);
   }
   
   MapObject createItemFromLoad(Vec2 origin, float wide, float tall, float angle, ItemType type, int newID) {
@@ -226,7 +237,7 @@ class MapHandler {
         }
         //connect back up all linked sensors.
         for (MapObject m : sensorsNeedingLinks) {
-          m.linkedDoor = getObjectByID(m.linkedDoorID);
+          m.linkToDoor(getObjectByID(m.linkedDoorID));
         }
         
       } catch (Exception e) {

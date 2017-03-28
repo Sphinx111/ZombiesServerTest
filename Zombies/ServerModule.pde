@@ -1,8 +1,12 @@
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.DatagramPacket;
+import java.util.concurrent.TimeoutException;
 
 class ServerModule extends Thread {
+  
+  //may need multiple threads processing received data if lots of clients are connected.
+  //with too many clients, some packets may be dropped from the OS buffer before the socket can copy them.
   
   //Packet definitions and ideal sequence
   //LINE 0 ALWAYS has String name of a PacketType enum. Lines are separated by "%" symbol, data elements separated by "/"
@@ -22,7 +26,7 @@ class ServerModule extends Thread {
   //                - Line 3 - customDataStructure for doors - [id,opening/closing] / [id,opening/closing]
   //                - Line 4 - customDataStructure for bullets - [pos,pos];
   
-  DatagramSocket clientListener;
+  DatagramSocket serverListener;
   DatagramSocket broadcastListener;
   InetAddress wildCardAddress;
   InetAddress myAddress;
@@ -30,19 +34,24 @@ class ServerModule extends Thread {
   int SERVER_HANDSHAKE_CODE = 55122031;
   int LISTENING_PORT = 51218;
   
+  UpdateHandler updateHandler;
+  byte[] nextUpdateStream;
+  
   DiscoveryThread discoverThread;
   
   ArrayList<LinkedClient> clientsLinked = new ArrayList<LinkedClient>();
   int nextClientID = 0;
   
+  boolean updateToSend = false;
+  
   private int bufLength = 512;
   
   public ServerModule() {
-    super("Zombies");
+    super("ServerModule");
+    updateHandler = new UpdateHandler();
     try {
-      //Set up a socket at port 4445
-      clientListener = new DatagramSocket(LISTENING_PORT);
-      System.out.println("ServerModule listening on port: " + clientListener.getPort());
+      //Set up a socket at defined listening port
+      serverListener = new DatagramSocket(LISTENING_PORT);
       
       //set up discovery thread
       discoverThread = new DiscoveryThread();
@@ -50,32 +59,48 @@ class ServerModule extends Thread {
       
     } catch (Exception e) {
       e.printStackTrace();
-      if (clientListener != null) {clientListener.close();}
+      if (serverListener != null) {serverListener.close();}
     }
   }
   
   void run() {
-    if (clientListener == null) {
+    if (serverListener == null) {
       return;
     }
-    System.out.println("ServerModule listening on port: " + clientListener.getPort());
+    System.out.println(getClass().getName() + ">>> Listening on port: " + serverListener.getLocalPort());
     while (true) {
       try {
-          byte[] bufIn = new byte[bufLength];  
-          DatagramPacket packetIn = new DatagramPacket(bufIn, bufIn.length);
-          clientListener.receive(packetIn);
-          PacketType received = checkPacketType(packetIn);
-          if (received == PacketType.CLIENT_REGISTER) {
-            addLinkedClient(packetIn.getAddress(),packetIn.getPort());
-            byte[] toSend = prepareJoinData(packetIn);
-            DatagramPacket sendPacket = new DatagramPacket(toSend,toSend.length,packetIn.getAddress(),packetIn.getPort());
-            clientListener.send(sendPacket);
+          if (nextUpdateStream != null) {
+            //send update to all linked clients
+            for (LinkedClient client : clientsLinked) {
+              DatagramPacket updatePacket = new DatagramPacket(nextUpdateStream, nextUpdateStream.length, client.address, client.port);
+              serverListener.send(updatePacket);
+            }
+            nextUpdateStream = null;
+          } else {
+            //listen for client input updates
+            byte[] bufIn = new byte[bufLength];  
+            DatagramPacket packetIn = new DatagramPacket(bufIn, bufIn.length);
+            //serverListener.setSoTimeout(100);
+            try {
+            serverListener.receive(packetIn);
+
+            System.out.println(getClass().getName() + ">>> Packet received from client at: " + packetIn.getAddress().getHostAddress() + ":" + packetIn.getPort());
+            //PACKET RECEIVED:
+            PacketType received = checkPacketType(packetIn);
+            if (received == PacketType.CLIENT_REGISTER) {
+              addLinkedClient(packetIn.getAddress(),packetIn.getPort());
+              byte[] toSend = prepareJoinData(packetIn);
+              DatagramPacket sendPacket = new DatagramPacket(toSend,toSend.length,packetIn.getAddress(),packetIn.getPort());
+              serverListener.send(sendPacket);
           } else if (received == PacketType.CLIENT_INPUT) {
             acceptClientInput(packetIn);
           }
+          } catch (Exception e) {
+            }
           
-          
-          //acceptClientInput(packetIn);        
+          //acceptClientInput(packetIn);
+          }
       } catch (Exception e) {
         e.printStackTrace();
       }
@@ -154,7 +179,6 @@ class ServerModule extends Thread {
     if (nextClientID > actorControl.MAX_PLAYER_COUNT) {
       nextClientID = 0;
     }
-    boolean sendJoinData = false;
     boolean clientIsNew = true;
     boolean clientIsReconnected = false;
     int replaceID = -1;
@@ -176,6 +200,9 @@ class ServerModule extends Thread {
        clientsLinked.add(toAdd);
      }
      
+     //create an Actor for the new client to control.
+     actorControl.addNewHumanPlayer(toAdd.id);
+     
   }
   
   PacketType checkPacketType(DatagramPacket packetIn) {
@@ -193,12 +220,10 @@ class ServerModule extends Thread {
   
   void communicateWorldState() {
     try {
-      
-      
+     nextUpdateStream = updateHandler.getByteArrayCurrent();
     } catch (Exception e) {
       e.printStackTrace();
     }
-    
   }
   
   

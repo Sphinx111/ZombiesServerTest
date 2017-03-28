@@ -37,7 +37,7 @@ class ClientModule extends Thread {
   private int bufLength = 512;
   
   public ClientModule() {
-    super("Zombies");
+    super("ClientModule");
     
     try {
       //Set up a socket at random open port...
@@ -75,10 +75,14 @@ class ClientModule extends Thread {
         clientSocket.send(sendPacket);
       } else if (serverAddress != null && myPlayerID != -1 && shouldSendUpdate()) {
         //if we have had joinData, check if we need to send an update packet, if so do the following:
+        byte[] dataOut = preparePlayerInputData();
+        DatagramPacket clientUpdatePacket = new DatagramPacket(dataOut, dataOut.length, serverAddress, serverPort);
+        clientSocket.send(clientUpdatePacket);
       } else {
         //if we don't need to send any updateData, wait for a new packet from server
         byte[] recvData = new byte[bufLength];
         DatagramPacket packetIn = new DatagramPacket(recvData, recvData.length);
+        clientSocket.setSoTimeout(100);
         clientSocket.receive(packetIn);
         
         //WAITS HERE ^^ UNTIL WE RECEIVE A NEW PACKET
@@ -131,6 +135,8 @@ class ClientModule extends Thread {
     String tickNow = clientTickCount + "";
       newString.append(tickNow);
       newString.append("%");
+      newString.append(tickNow);
+      newString.append("/");
     int W = keyHandler.getWInt();
     int A = keyHandler.getAInt();
     int S = keyHandler.getSInt();

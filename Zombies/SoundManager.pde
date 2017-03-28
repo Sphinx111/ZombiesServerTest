@@ -13,14 +13,18 @@ class SoundManager {
   
   public SoundManager(PApplet parent,String fileToPlay) {
     minim = new Minim(parent);
-    if (fileToPlay.contains("zombie")) {
-      soundZ = minim.loadSample("zombie.mp3", 512);
-      soundZ.setGain(-20);
-      mySoundFile = "zombie.mp3";
-    } else if (fileToPlay.contains("gunshot")) {  
-      soundG = minim.loadSample("gunshot.mp3", 512);
-      soundG.setGain(-15);
-      mySoundFile = "gunshot.mp3";
+    try {
+      if (fileToPlay.contains("zombie")) {
+        soundZ = minim.loadSample("zombie.mp3", 512);
+        soundZ.setGain(-20);
+        mySoundFile = "zombie.mp3";
+      } else if (fileToPlay.contains("gunshot")) {  
+        soundG = minim.loadSample("gunshot.mp3", 512);
+        soundG.setGain(-15);
+        mySoundFile = "gunshot.mp3";
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
     }
   }
   

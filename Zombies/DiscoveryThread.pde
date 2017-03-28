@@ -7,7 +7,7 @@ public class DiscoveryThread extends Thread {
   String DISCOVER_REPLY_CODE = "You're in the right place!";
   
   public DiscoveryThread () {
-    super("Zombies");
+    super("DiscoveryThread");
   }
   
   @Override
@@ -18,7 +18,7 @@ public class DiscoveryThread extends Thread {
       discoverySocket.setBroadcast(true);
       
       while (true) {
-        System.out.println(getClass().getName() + ">>>Ready to receive packet broadcasts");
+        System.out.println(getClass().getName() + ">>>Ready to receive packet broadcasts at port: " + discoverySocket.getLocalPort());
         
         //Receive a packet (receive method only triggers if a packet is actually received, otherwise it blocks the function)
         byte[] recvBuf = new byte[bufLength];

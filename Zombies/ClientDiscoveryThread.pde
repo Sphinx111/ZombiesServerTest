@@ -7,7 +7,7 @@ public class ClientDiscoveryThread extends Thread {
   int SEARCH_SOCKET = 15132;
   
   public ClientDiscoveryThread() {
-    super("Zombies");
+    super("ClientDiscoveryThread");
   }
   
   @Override
@@ -48,8 +48,8 @@ public class ClientDiscoveryThread extends Thread {
           }
           System.out.println(getClass().getName() + ">>> SEARCH PACKET SENT TO " + broadcast.getHostAddress() + " via Interface: " + networkInterface.getDisplayName());
         }
-        System.out.println(getClass().getName() + ">>> FINISHED SENDING SEARCH PACKETS ON ALL INTERFACES, NOW AWAITING RESPONSE");
       }
+      System.out.println(getClass().getName() + ">>> FINISHED SENDING SEARCH PACKETS ON ALL INTERFACES, NOW AWAITING RESPONSE");
       
       //get the response
       byte[] recvBuf = new byte[bufLength];

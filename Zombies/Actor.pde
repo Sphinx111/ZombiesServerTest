@@ -9,6 +9,8 @@ class Actor {
   ArrayList<ItemType> myItems = new ArrayList<ItemType>();
   Weapon myWeapon = null; //weapon held by this actor
   color myColor;
+  int playerID;
+  int actorID;
   
   float maxSightRange = 1000; //max range in pixels that player can see.
   float FOV = PI/2; //angle player can see in Radians;
@@ -16,13 +18,17 @@ class Actor {
   float maxSpeed = 30;
   float health = 100;
   
+  int bittenTime = -1;
+  int biteDelay = 10; // should be just enough time for players to see the spread of infection through a clustered mass of players.
+  
   Body body; //The actor's physics simulation body.
   float humanSightRange = 500; //range at which AIs will see and engage zombies.
   
   Actor targetZombie = null; //making sure variable is initialized for AI Behaviour checks.
   
-  public Actor(Vec2 pos, boolean isPlayer, Team team, Type type) {
+  public Actor(Vec2 pos, boolean isPlayer, Team team, Type type, int id) {
     this.isPlayer = isPlayer;
+    playerID = id;
     myTeam = team;
     if (myTeam == Team.ZOMBIE) {
       myColor = color(myTeam.ZOMBIE_COLOR[0],myTeam.ZOMBIE_COLOR[1],myTeam.ZOMBIE_COLOR[2]);
@@ -83,28 +89,22 @@ class Actor {
   }
   
   void move(Vec2 dir) {
-    Vec2 newVec = new Vec2(accel * (float)Math.cos(body.getAngle()-(PI/2)), accel * (float)Math.sin(body.getAngle()-(PI/2)));
-    newVec = newVec.mul(dir.y);
-    Vec2 newVec2 = new Vec2(accel * (float)Math.sin(body.getAngle()-(PI/2)), accel * (float)Math.cos(body.getAngle()-(PI/2)));
-    newVec2 = newVec2.mul(dir.x);
-    this.applyForce(newVec);
-    this.applyForce(newVec2);
+    this.applyForce(dir.mul(accel));
     
     //if the new speed is greater than the maxspeed, scale it down to maxspeed.
-    Vec2 totalVel = newVec.add(newVec2);
     Vec2 newVel = body.getLinearVelocity();
     if (newVel.length() > maxSpeed) {
-      body.setLinearVelocity(totalVel.mul((maxSpeed)/newVel.length()));
+      body.setLinearVelocity(new Vec2(newVel.mul(maxSpeed/newVel.length())));
     }
   }
   
-  void turnTowards(Vec2 pixPos) {
+  /*void turnTowards(Vec2 pixPos) {
     Vec2 worldPos = box2d.coordPixelsToWorld(pixPos);
     Vec2 vecToMouse = worldPos.add(body.getPosition().mul(-1));
     float newAngle = PI/2 + (float)Math.atan2(vecToMouse.y,vecToMouse.x);
-    body.setAngularVelocity(0);
     body.setTransform(body.getWorldCenter(), newAngle);
-  }
+    body.setAngularVelocity(0);
+  }*/
   
   void shoot() {
     if (myWeapon != null) {
@@ -132,16 +132,25 @@ class Actor {
       Object other = ce.other.getUserData();
       if (other instanceof Actor) {
         Actor stranger = (Actor)other;
-        if (myTeam == Team.HUMAN && stranger.myTeam == Team.ZOMBIE) {
-          myTeam = Team.ZOMBIE;
-          myWeapon = null;
-          myColor = stranger.myColor;
-          myType = stranger.myType;
-          if (isPlayer) {
-            mainCamera.screenShake(50);
-          }
+        if (myTeam == Team.HUMAN && stranger.myTeam == Team.ZOMBIE && bittenTime == -1) {
+          bittenTime = frameCount;
         }
       }
+    }
+    if (bittenTime != -1 && frameCount > bittenTime + biteDelay) {
+      myTeam = Team.ZOMBIE;
+      myWeapon = null;
+      myColor = color(myTeam.ZOMBIE_COLOR[0], myTeam.ZOMBIE_COLOR[1], myTeam.ZOMBIE_COLOR[2]);
+      myType = Type.BASIC_ZOMBIE;
+      health = myType.ZOMBIE_HEALTH;
+      accel = myType.SOLDIER_ACCEL * myType.ZOMBIE_ACCEL_MULTIPLIER;
+      maxSpeed = myType.SOLDIER_MAXSPEED * myType.ZOMBIE_MAXSPEED_MULTIPLIER;
+      maxSightRange = myType.ZOMBIE_MAXSIGHTRANGE;
+      FOV = myType.ZOMBIE_FOV;
+        if (isPlayer) {
+          mainCamera.screenShake(50);
+        }
+      bittenTime = -1;
     }
     
   }
@@ -191,6 +200,9 @@ class Actor {
     fd.shape = sd;
     // Parameters that affect physics
     fd.density = 1;
+    if (myType == Type.BIG_ZOMBIE) {
+      fd.density = myType.BIGZOMBIE_DENSITY;
+    }
     fd.friction = 0;
     if (!isPlayer) {
       fd.friction = -0.2;
@@ -209,6 +221,8 @@ class Actor {
     body.setUserData(this);
     fix.setUserData(this);
   }
+  
+  Vec2 playerOffset;
   
   void runBehaviour() {
     if (!isPaused && !creatorMode) {
@@ -241,6 +255,7 @@ class Actor {
         }
         Vec2 target = targetHuman.body.getWorldCenter();
         Vec2 directionToTarget = target.add(body.getWorldCenter().mul(-1));
+        Vec2 moveToTarget = directionToTarget.mul(1/directionToTarget.length());
         float distToTarget = box2d.scalarWorldToPixels(directionToTarget.length());
         if (distToTarget < 300 && Math.random() < 0.001 && targetHuman == actorControl.player) {
           float volume = (300 - distToTarget) / 300;
@@ -256,13 +271,32 @@ class Actor {
           moveChance = 0.1;
         }
         if ((float)Math.random() <= moveChance) {
-          move(new Vec2(0,1));
+          move(moveToTarget);
         }
       } else if (myTeam == Team.HUMAN) {
         //move roughly towards player
-        Vec2 moveTarget = actorControl.player.body.getWorldCenter();
-        moveTarget = new Vec2(moveTarget.x - 2 + ((float)Math.random() * 4),moveTarget.y - 2 + ((float)Math.random() * 4));
+        if (playerOffset == null) {
+          float radiansOffset = (float)Math.random() * 2 * PI;
+          playerOffset = new Vec2(2.5 * (float)Math.sin(radiansOffset), 2.5 * (float)Math.cos(radiansOffset));
+        }
+        Vec2 moveTarget = actorControl.player.body.getWorldCenter().add(playerOffset);
         Vec2 directionToTarget = moveTarget.add(body.getWorldCenter().mul(-1));
+        
+        //debug draw moveTarget
+        Vec2 pixMoveTarget = box2d.coordWorldToPixels(moveTarget);
+        Vec2 bodyPos = box2d.coordWorldToPixels(body.getWorldCenter());
+        Vec2 moveVecResult = box2d.coordWorldToPixels(body.getWorldCenter().add(directionToTarget));
+        strokeWeight(1);
+        stroke(0,0,255);
+        line(bodyPos.x,bodyPos.y,pixMoveTarget.x,pixMoveTarget.y);
+        strokeWeight(5);
+        point(pixMoveTarget.x,pixMoveTarget.y);
+        stroke(0,255,0);
+        strokeWeight(1);
+        line(bodyPos.x,bodyPos.y,moveVecResult.x,moveVecResult.y);
+        
+        
+        
         directionToTarget.normalize();
         move(directionToTarget);
         
@@ -297,7 +331,6 @@ class Actor {
         Vec2 directionToTargetShoot = targetZombie.body.getWorldCenter().add(body.getWorldCenter().mul(-1));
         float distanceToTargetShoot = box2d.scalarWorldToPixels(directionToTarget.length());
         float newAngle = (float) Math.atan2((double)directionToTargetShoot.y, (double)directionToTargetShoot.x) + (PI/2);
-        body.setTransform(body.getWorldCenter(),newAngle);
         body.setTransform(body.getWorldCenter(),newAngle);
         body.setAngularVelocity(0);
         if (distanceToTargetShoot <= humanSightRange) {

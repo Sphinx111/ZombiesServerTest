@@ -87,32 +87,33 @@ public enum Type {
   BIG_ZOMBIE;
   
   float SOLDIER_HEALTH = 100;
-  float SOLDIER_MAXSPEED = 30;
-  float SOLDIER_ACCEL = 300;
+  float SOLDIER_MAXSPEED = 8;
+  float SOLDIER_ACCEL = 150;
   float SOLDIER_FOV = PI/2;
   float SOLDIER_MAXSIGHTRANGE = 1000;
-  float SOLDIER_RADIUS = 20;
+  float SOLDIER_RADIUS = 30;
   
   float ZOMBIE_HEALTH = 2500;
   float ZOMBIE_MAXSPEED_MULTIPLIER = 1.2;
   float ZOMBIE_ACCEL_MULTIPLIER = 1;
-  float ZOMBIE_FOV = PI + (PI/4);
+  float ZOMBIE_FOV = 3 * PI / 4;
   float ZOMBIE_MAXSIGHTRANGE = 1000;
-  float ZOMBIE_RADIUS = 20;
+  float ZOMBIE_RADIUS = 30;
   
   float BIGZOMBIE_HEALTH = 25000;
-  float BIGZOMBIE_MAXSPEED_MULTIPLIER = 1.1;
-  float BIGZOMBIE_ACCEL_MULTIPLIER = 2;
-  float BIGZOMBIE_FOV = PI + (PI/4);
+  float BIGZOMBIE_MAXSPEED_MULTIPLIER = 0.95;
+  float BIGZOMBIE_ACCEL_MULTIPLIER = 8;
+  float BIGZOMBIE_FOV = 3 * PI /4;
   float BIGZOMBIE_MAXSIGHTRANGE = 800;
-  float BIGZOMBIE_RADIUS = 30;
+  float BIGZOMBIE_RADIUS = 45;
+  float BIGZOMBIE_DENSITY = 4;
   
   float CIVILIAN_HEALTH = 80;
-  float CIVILIAN_MAXSPEED = 28;
+  float CIVILIAN_MAXSPEED = 7;
   float CIVILIAN_ACCEL = 300;
-  float CIVILIAN_FOV = PI/2;
+  float CIVILIAN_FOV = 3 * PI / 4;
   float CIVILIAN_MAXSIGHTRANGE = 1000;
-  float CIVILIAN_RADIUS = 20;
+  float CIVILIAN_RADIUS = 30;
 }
 
 public enum PacketType {
@@ -129,7 +130,7 @@ public enum WeaponType {
   SMG;
   
   int RIFLE_DAMAGE = 15;
-  float RIFLE_PUSHBACK = 100; //remember, this value is improved by the fire rate.
+  float RIFLE_PUSHBACK = 120; //remember, this value is improved by the fire rate.
   float RIFLE_RANGE = 1500;
   float RIFLE_MAXSPREAD = 3 * (2 * PI / 360); //degrees + radians conversion.
   int RIFLE_FIREDELAY = 4;
@@ -138,7 +139,7 @@ public enum WeaponType {
   String RIFLE_SOUND = "gunshot.mp3";
   
   int HANDGUN_DAMAGE = 5;
-  float HANDGUN_PUSHBACK = 100;
+  float HANDGUN_PUSHBACK = 80;
   float HANDGUN_RANGE = 600;
   float HANDGUN_MAXSPREAD = 4.5 * (2 * PI / 360);
   int HANDGUN_FIREDELAY = 6;
