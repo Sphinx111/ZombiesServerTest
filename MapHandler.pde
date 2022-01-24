@@ -2,11 +2,14 @@ import java.io.PrintWriter;
 import java.io.FileReader;
 import java.io.BufferedReader;
 
+//Gives entities a Unique ID number for serialization and save/load processes.
+public int uniqueIDCounter = 0;
+
 class MapHandler {
  
-  int uniqueIDCounter = 0;
   ArrayList<MapObject> allObjects = new ArrayList<MapObject>();
   ArrayList<MapObject> objectsToRemove = new ArrayList<MapObject>();
+  ArrayList<Object> objectsUpdated = new ArrayList<Object>(); //any objects moved this turn are listed for subsequent serialization.
   PrintWriter printToSave;
   BufferedReader readToLoad;
   String name = "testMap";
@@ -26,7 +29,34 @@ class MapHandler {
     return newMapObject;
   }
   
+  MapObject createItemByMouse(Vec2 origin, ItemType item) {
+    float myWidth = box2d.scalarPixelsToWorld(item.RIFLE_LENGTH);
+    float myHeight = box2d.scalarPixelsToWorld(item.RIFLE_WIDTH);
+    MapObject newItem = new MapObject(origin,myWidth,myHeight,0,item,uniqueIDCounter);
+    allObjects.add(newItem);
+    uniqueIDCounter +=1;
+    return newItem;
+  }
+  
+  void objectUpdated(MapObject iChanged) {
+    objectsUpdated.add((Object)iChanged);
+  }
+  
+  void objectUpdated (Actor iChanged) {
+    objectsUpdated.add((Object)iChanged);
+  }
+  
+  MapObject createItemFromLoad(Vec2 origin, float wide, float tall, float angle, ItemType type, int newID) {
+    MapObject newItem = new MapObject(origin,wide,tall,angle,type,newID);
+    allObjects.add(newItem);
+    return newItem;
+  }
+  
   void createActorByMouse(Vec2 origin, Team team, Type type) {
+    
+  }
+  
+  void createActorFromLoad(Vec2 origin, Team team, Type type) {
     
   }
   
@@ -86,7 +116,14 @@ class MapHandler {
         //prepare stringbuilder for saving a line of data.
         StringBuilder newline = new StringBuilder();
         //get string of blockType for first piece of data
-        newline.append(BlockType.getString(m.myType) + ",");
+        String typeString;
+        if (m.myType != BlockType.ITEM ) {
+          typeString = BlockType.getStringFromType(m.myType) + ",";
+        } else {
+          typeString = ItemType.getStringFromItem(m.myItemType) + ",";
+        }
+        newline.append(typeString);
+        
         int saveID = m.myID;
         newline.append(saveID + ",");
         Vec2 savePos = m.body.getPosition();
@@ -159,34 +196,50 @@ class MapHandler {
       try {
         for (int i = 0; i < inputLines.length; i++) {
           String[] dataPieces = inputLines[i].split(",");
-          BlockType loadType = BlockType.getTypeFromString(dataPieces[0]);
-          int newID = Integer.parseInt(dataPieces[1]);
-          float x = Float.parseFloat(dataPieces[2]);
-          float y = Float.parseFloat(dataPieces[3]);
-          float angle = Float.parseFloat(dataPieces[4]);
-          Vec2 newPos = new Vec2(x,y);
-          float wide = Float.parseFloat(dataPieces[5]);
-          float tall = Float.parseFloat(dataPieces[6]);
-          int linkedID = Integer.parseInt(dataPieces[7]);
-          MapObject newMapObject = createMapObjectFromLoad(newPos,wide,tall,angle, loadType, newID);
-          if (newID > highestLoadID) {
-            highestLoadID = newID;
+          BlockType loadType = null;
+          ItemType loadItem = null;
+          int loadMode = 0;
+          if (dataPieces[0].contains("ITEM")) {
+            loadItem = ItemType.getTypeFromString(dataPieces[0]);
+            loadMode = 1;
+          } else {
+            loadType = BlockType.getTypeFromString(dataPieces[0]);
+            loadMode = 2;
           }
-          if (loadType == BlockType.SENSOR && linkedID != -1) {
-            newMapObject.linkedDoorID = linkedID;
-            sensorsNeedingLinks.add(newMapObject);
-          }
-          if (dataPieces.length >= 10) {
-            float xOpen = Float.parseFloat(dataPieces[8]);
-            float yOpen = Float.parseFloat(dataPieces[9]);
-            Vec2 openPos = new Vec2(xOpen,yOpen);
-            openPos = new Vec2 (openPos.x, openPos.y);
-            newMapObject.doorOpenPos = openPos;
+          if (dataPieces.length > 7) {
+            int newID = Integer.parseInt(dataPieces[1]);
+            float x = Float.parseFloat(dataPieces[2]);
+            float y = Float.parseFloat(dataPieces[3]);
+            float angle = Float.parseFloat(dataPieces[4]);
+            Vec2 newPos = new Vec2(x,y);
+            float wide = Float.parseFloat(dataPieces[5]);
+            float tall = Float.parseFloat(dataPieces[6]);
+            int linkedID = Integer.parseInt(dataPieces[7]);
+            MapObject newMapObject = null;
+            if (loadMode == 1) {
+              newMapObject = createItemFromLoad(newPos,wide,tall,angle, loadItem, newID);
+            } else {
+              newMapObject = createMapObjectFromLoad(newPos,wide,tall,angle, loadType, newID);
+            }
+            if (newID > highestLoadID) {
+              highestLoadID = newID;
+            }
+            if (loadType == BlockType.SENSOR && linkedID != -1) {
+              newMapObject.linkedDoorID = linkedID;
+              sensorsNeedingLinks.add(newMapObject);
+            }
+            if (dataPieces.length >= 10) {
+              float xOpen = Float.parseFloat(dataPieces[8]);
+              float yOpen = Float.parseFloat(dataPieces[9]);
+              Vec2 openPos = new Vec2(xOpen,yOpen);
+              openPos = new Vec2 (openPos.x, openPos.y);
+              newMapObject.doorOpenPos = openPos;
+            }
           }
         }
         //connect back up all linked sensors.
         for (MapObject m : sensorsNeedingLinks) {
-          m.linkedDoor = getObjectByID(m.linkedDoorID);
+          m.linkToDoor(getObjectByID(m.linkedDoorID));
         }
         
       } catch (Exception e) {

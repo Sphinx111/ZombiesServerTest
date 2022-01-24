@@ -3,7 +3,9 @@ import org.jbox2d.collision.shapes.*;
 import org.jbox2d.common.*;
 import org.jbox2d.dynamics.*;
 import ddf.minim.*;
+import java.io.Serializable;
 
+Zombies parentApplet;
 Box2DProcessing box2d;
 StateManager gameStateManager;
 ActorController actorControl;
@@ -13,32 +15,44 @@ FogOfWar fogOfWar;
 UILayer uiLayer;
 MouseHandler mouseHandler;
 SoundManager soundManager;
+ServerModule server;
+ClientModule client;
 Camera mainCamera;
 Boolean isPaused = true;
 Boolean creatorMode = false;
+Boolean isServer = true;
 
 Vec2 playerStartPos;
-int numOfActors = 15;
-int totalHumanPlayers = 3;
+int numOfActors = 10;
+int totalHumanPlayers = 4;
 
 float newMouseX;
 float newMouseY;
 
 void setup() {
   size(1300,720);
-  box2d = new Box2DProcessing(this);
+  parentApplet = this;
+  box2d = new Box2DProcessing(parentApplet);
+  box2d.setScaleFactor(20);
   box2d.createWorld(new Vec2(0,0));
   playerStartPos = new Vec2(width/2, height/2);
   mainCamera = new Camera();
   gameStateManager = new StateManager();
-  actorControl = new ActorController(numOfActors);
   mapHandler = new MapHandler();
+  actorControl = new ActorController(numOfActors);
   keyHandler = new KeyboardHandler();
   mouseHandler = new MouseHandler();
   fogOfWar = new FogOfWar();
   uiLayer = new UILayer();
-  soundManager = new SoundManager(this);
+  soundManager = new SoundManager(parentApplet, "zombie");
   mapHandler.loadMap("testMap");
+  if (isServer) {
+    server = new ServerModule();
+    server.start();
+  } else if (!isServer) {
+    client = new ClientModule();
+    client.start();
+  }
 }
 
 void draw() {
@@ -64,6 +78,9 @@ void draw() {
   mapHandler.cleanup();
   mainCamera.undoTransform();
   gameStateManager.update();
+  if (isServer) {
+    server.communicateWorldState();
+  }
 }
 
 void keyPressed() {

@@ -6,7 +6,7 @@ class UILayer {
   float yDiff = 10;
   float uiPanelX = width - 120;
   float uiPanelY = 0;
-  float uiPanelHeight = 120;
+  float uiPanelHeight = 140;
   float uiPanelWidth = 120;
   
   int numOfButtons = 4; 
@@ -60,8 +60,10 @@ class UILayer {
         buttonText = "SENSOR";
       } else if (i == 2) {
         buttonText = "DOOR";
-      } else {
+      } else if (i == 3) {
         buttonText = "ACTOR";
+      } else {
+        buttonText = "RIFLE";
       }
       float newX = uiPanelX + buttonStartX + (i * buttonXDiff);
       float newY = uiPanelY + buttonStartY + (i * buttonYDiff);
@@ -72,7 +74,7 @@ class UILayer {
       fill(255);
       text(buttonText, newX + 2, newY + (buttonYDiff/2));
     }
-    String activeType = BlockType.getString(mouseHandler.currentType);
+    String activeType = BlockType.getStringFromType(mouseHandler.currentType);
     text(activeType, uiPanelX + buttonStartX, buttonStartY - 2);
     rectMode(CENTER);
     
@@ -88,6 +90,8 @@ class UILayer {
         return BlockType.DOOR;
       } else if (mouseY < uiPanelY + buttonStartY + (4 * buttonYDiff)) {
         return BlockType.ACTOR;
+      } else if (mouseY < uiPanelY + buttonStartY + (5 * buttonYDiff)) { 
+        return BlockType.ITEM;
       } else {
         return current;
       }

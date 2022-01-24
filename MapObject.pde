@@ -1,28 +1,36 @@
-class MapObject {
+class MapObject implements Serializable {
  
   int myID;
-  Body body; 
-  Fixture myFix;
+  transient Body body; 
+  transient Fixture myFix;
   BlockType myType;
+  ItemType myItemType;
   float pixWidth;
   float pixHeight;
-  color myColor = color(100);
-  public color DOOR_COLOR = color(50);
-  public color LINKED_DOOR_COLOR = color (75);
+  Vec2 bodyPos;
+  transient color myColor = color(100);
+  transient public color DOOR_COLOR = color(50);
+  transient public color LINKED_DOOR_COLOR = color (75);
   
-  MapObject linkedDoor;
-  int linkedDoorID = -1;
-  int sensorTimeDelay = 60;
-  int TIMER_NULL = 999999999;
-  int timeButtonPressed = TIMER_NULL;
-  boolean buttonPressed = false;
+  //if this object should be transmitted in full to a client this tick, all key variables will be updated.
+  transient boolean fullTransmit = false;
   
-  boolean doorOpen = false;
-  Vec2 doorOpenPos;
-  Vec2 doorClosedPos;
-  int doorOpenTime = 10; //currently doesn't define 'time' for opening.
-  int doorCloseTime = 10; //
-  boolean doorMoving = false;
+  transient MapObject linkedDoor;
+  transient int linkedDoorID = -1;
+  transient int sensorTimeDelay = 60;
+  transient int TIMER_NULL = 999999999;
+  transient int timeButtonPressed = TIMER_NULL;
+  transient boolean buttonPressed = false;
+  transient Actor lastTouchedActor;
+  
+  transient boolean doorOpen = false;
+  transient Vec2 doorOpenPos;
+  transient Vec2 doorClosedPos;
+  transient int doorOpenTime = 10; //currently doesn't define 'time' for opening.
+  transient int doorCloseTime = 10; //
+  transient boolean doorMoving = false;
+  
+  transient boolean endGameTrigger = false;
   
   public MapObject (Vec2 worldPosCenter, float worldWidth, float worldHeight, float angleOfRotation, BlockType type, int newID) {
     pixWidth = box2d.scalarWorldToPixels(worldWidth);
@@ -42,9 +50,27 @@ class MapObject {
     }
   }
   
+  //overloaded creation method for creating ItemTypes instead of normal MapObjects.
+  public MapObject (Vec2 worldPosCenter, float worldWidth, float worldHeight, float angleOfRotation, ItemType type, int newID) {
+    pixWidth = box2d.scalarWorldToPixels(worldWidth);
+    pixHeight = box2d.scalarWorldToPixels(worldHeight);
+    myType = BlockType.ITEM;
+    myItemType = type;
+    myID = newID;
+    doorClosedPos = worldPosCenter;
+    myColor = color(120,120,255);
+    makeBody(worldPosCenter, worldWidth, worldHeight, angleOfRotation);
+    
+  }
+    
   void linkToDoor (MapObject linkedDoor) {
-    if (myType == BlockType.SENSOR) {
-      this.linkedDoor = linkedDoor;
+    if (linkedDoor.myType == BlockType.DOOR) {
+      if (myType == BlockType.SENSOR) {
+        this.linkedDoor = linkedDoor;
+      }
+    } else if (linkedDoor.myType == BlockType.SENSOR) {
+      myColor = color(150,150,90);
+      endGameTrigger = true;
     }
   }
   
@@ -57,6 +83,7 @@ class MapObject {
       Object other = ce.other.getUserData();
       if (other instanceof Actor) {
         Actor stranger = (Actor)other;
+        lastTouchedActor = stranger;
         if (stranger.myTeam == Team.HUMAN) {
           return true;
         }
@@ -75,8 +102,10 @@ class MapObject {
   void buttonActivateIfDelayDone() {
     if (myType == BlockType.SENSOR) {
       if (frameCount > timeButtonPressed + sensorTimeDelay) {
-        linkedDoor.openDoor();
-        buttonPressed = false;
+        if (linkedDoor != null) {
+          linkedDoor.openDoor();
+          buttonPressed = false;
+        }
       }
     }
   }
@@ -93,6 +122,10 @@ class MapObject {
       myType = BlockType.FIXED;
       myColor = color(100);
     }
+  }
+  
+  void prepareToSerialize() {
+    bodyPos = body.getWorldCenter();
   }
   
   void checkDoorMovement() {
@@ -138,15 +171,17 @@ class MapObject {
     fd.density = 1;
     fd.friction = 0;
     fd.restitution = 0.05;
-    if (myType == BlockType.SENSOR) {
+    if (myType == BlockType.SENSOR || myType == BlockType.ITEM) {
       fd.isSensor = true;
+    } else {
+      fd.isSensor = false;
     }
     
     // Define the body and make it from the shape
     BodyDef bd = new BodyDef();
     if (myType == BlockType.FIXED) {
       bd.type = BodyType.STATIC;
-    } else if (myType == BlockType.SENSOR) {
+    } else if (myType == BlockType.SENSOR || myType == BlockType.ITEM) {
       bd.type = BodyType.DYNAMIC;
     } else if (myType == BlockType.DOOR) {
       bd.type = BodyType.KINEMATIC;
@@ -162,12 +197,27 @@ class MapObject {
   
   void update() {
     if (myType == BlockType.SENSOR) {
-      if (checkSensorCollision()) {
-        pressButton();
-      }
       buttonActivateIfDelayDone();
+    }
+    if (myType == BlockType.SENSOR || myType == BlockType.ITEM) {
+      if (checkSensorCollision()) {
+        if (myType == BlockType.ITEM) {
+          if (!lastTouchedActor.hasItem(myItemType)) {
+            lastTouchedActor.addItem(myItemType);
+            mapHandler.removeObject(this);
+          }
+        } else {
+          pressButton();
+        } 
+        if (endGameTrigger) {
+          gameStateManager.endGameBySensor();
+        }
+      }
     } else if (myType == BlockType.DOOR) {
       checkDoorMovement();
+    }
+    if (fullTransmit) {
+      prepareToSerialize();
     }
   }
   

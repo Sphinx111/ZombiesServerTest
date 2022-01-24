@@ -12,7 +12,6 @@ class FogOfWar {
   PShape fogShape;
   PShape fogShape2;
   
-  RayFogDetector fogDetector = new RayFogDetector(this);
   int ray_index = 0;
   
   float angle = 0;
